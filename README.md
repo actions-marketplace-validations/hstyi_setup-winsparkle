@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Set up WinSparkle
-        uses: hstyisetup-winsparkle@v1
+        uses: hstyi/setup-winsparkle@v1
         with:
           version: '0.9.4'
 
@@ -43,7 +43,7 @@ You can use the outputs to locate the downloaded files:
 ```yaml
 - name: Set up WinSparkle
   id: winsparkle
-  uses: hstyisetup-winsparkle@v1
+  uses: hstyi/setup-winsparkle@v1
 
 - name: Inspect WinSparkle files
   shell: pwsh
