@@ -1,0 +1,68 @@
+name: Setup WinSparkle
+description: Download WinSparkle and add its command-line tools to PATH on Windows runners.
+author: setup-winsparkle contributors
+
+branding:
+  icon: download
+  color: blue
+
+inputs:
+  version:
+    description: WinSparkle release version (without the leading v).
+    required: false
+    default: '0.9.4'
+
+outputs:
+  bin-path:
+    description: Absolute path to the WinSparkle tools directory.
+    value: ${{ steps.install.outputs.bin-path }}
+  install-path:
+    description: Absolute path to the extracted WinSparkle package directory.
+    value: ${{ steps.install.outputs.install-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Download and set up WinSparkle
+      id: install
+      shell: pwsh
+      env:
+        WINSPARKLE_VERSION: ${{ inputs.version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        if (-not $IsWindows) {
+          throw 'setup-winsparkle only supports Windows runners.'
+        }
+
+        $version = $env:WINSPARKLE_VERSION
+        if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
+          throw "Invalid WinSparkle version '$version'. Use a version such as '0.9.4', without the 'v' prefix."
+        }
+
+        $archive = "WinSparkle-$version.zip"
+        $url = "https://github.com/vslavik/winsparkle/releases/download/v$version/$archive"
+        $destination = Join-Path (Join-Path $env:RUNNER_TEMP 'setup-winsparkle') $version
+        $zip = Join-Path $env:RUNNER_TEMP $archive
+
+        Write-Host "Downloading WinSparkle $version..."
+        Invoke-WebRequest -Uri $url -OutFile $zip
+        Expand-Archive -LiteralPath $zip -DestinationPath $destination -Force
+
+        # Support archives with or without a top-level WinSparkle-version folder.
+        $installPath = Join-Path $destination "WinSparkle-$version"
+        if (-not (Test-Path -LiteralPath $installPath -PathType Container)) {
+          $installPath = $destination
+        }
+
+        $binPath = Join-Path $installPath 'bin'
+        if (-not (Test-Path -LiteralPath $binPath -PathType Container)) {
+          throw "WinSparkle tools directory not found: $binPath"
+        }
+
+        $binPath >> $env:GITHUB_PATH
+        "bin-path=$binPath" >> $env:GITHUB_OUTPUT
+        "install-path=$installPath" >> $env:GITHUB_OUTPUT
+
+        Write-Host "WinSparkle $version installed: $installPath"
+        Write-Host "Added to PATH: $binPath"
